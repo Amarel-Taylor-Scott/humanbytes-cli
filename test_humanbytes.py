@@ -60,6 +60,22 @@ class ParseBytesTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             hb.parse_bytes("1.5")
 
+    def test_float_rejected(self):
+        """Floats must raise TypeError to prevent silent truncation (e.g. 3.7 -> 3)."""
+        with self.assertRaises(TypeError):
+            hb.parse_bytes(3.7)
+        with self.assertRaises(TypeError):
+            hb.parse_bytes(0.0)
+        with self.assertRaises(TypeError):
+            hb.parse_bytes(1_610_612_736.0)
+
+    def test_bool_rejected(self):
+        """Booleans are technically int subclasses; they must still raise TypeError."""
+        with self.assertRaises(TypeError):
+            hb.parse_bytes(True)
+        with self.assertRaises(TypeError):
+            hb.parse_bytes(False)
+
 
 class FormatBytesTest(unittest.TestCase):
     def test_zero(self):
@@ -88,6 +104,12 @@ class FormatBytesTest(unittest.TestCase):
     def test_min_unit_index(self):
         self.assertEqual(hb.format_bytes(512, min_unit_index=1), "0.50 KiB")
         self.assertEqual(hb.format_bytes(1024, min_unit_index=1), "1.00 KiB")
+
+    def test_min_unit_index_with_zero(self):
+        """Zero always formats as '0 B' regardless of min_unit_index."""
+        self.assertEqual(hb.format_bytes(0, min_unit_index=0), "0 B")
+        self.assertEqual(hb.format_bytes(0, min_unit_index=1), "0 B")
+        self.assertEqual(hb.format_bytes(0, min_unit_index=3), "0 B")
 
     def test_invalid(self):
         with self.assertRaises(TypeError):

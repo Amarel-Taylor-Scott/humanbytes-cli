@@ -50,12 +50,15 @@ def _find_unit_index(units: Iterable[str], unit: str) -> int:
     raise ValueError(f"unrecognized unit {unit!r}")
 
 
-def parse_bytes(value: str) -> int:
+def parse_bytes(value: str | int) -> int:
     """Parse a human-readable byte size into an integer number of bytes.
 
     Both IEC (KiB, MiB, GiB, ...) and SI (kB, MB, GB, ...) units are accepted.
     The unit letter is case-insensitive and whitespace around the number is
     allowed.  Returns a (possibly negative) ``int``.
+
+    Raises TypeError when passed a non-string, non-int (e.g. float), to guard
+    against silent truncation of fractional byte counts.
 
     Examples:
         >>> parse_bytes("1.5 GiB")
@@ -65,8 +68,14 @@ def parse_bytes(value: str) -> int:
         >>> parse_bytes("-1 kiB")
         -1024
     """
-    if isinstance(value, (int,)):
-        return int(value)
+    # Reject floats and bools before they can be string-coerced into a form
+    # that would raise ValueError.  isinstance(bool, int) is True, so bools
+    # must be excluded explicitly.
+    if not isinstance(value, str) and not (isinstance(value, int) and not isinstance(value, bool)):
+        raise TypeError(f"expected str or int, got {type(value).__name__!r}")
+
+    if isinstance(value, int):
+        return value
 
     text = str(value).strip()
     if not text:
@@ -136,15 +145,17 @@ def format_bytes(
     negative = n < 0
     magnitude = abs(n)
 
-    if magnitude == 0:
-        return f"0 {units[0]}"
-
     # Choose the largest unit that keeps the scaled value >= 1, respecting the
-    # minimum unit index.
+    # minimum unit index.  Note: zero deliberately falls through to unit index
+    # 0 (bytes) so that format_bytes(0, min_unit_index=N) correctly returns
+    # "0 B" — asking for at least KiB makes no sense for zero bytes.
     idx = min_unit_index
     max_idx = len(units) - 1
-    while idx < max_idx and magnitude >= base ** (idx + 1):
-        idx += 1
+    if magnitude == 0:
+        idx = 0
+    else:
+        while idx < max_idx and magnitude >= base ** (idx + 1):
+            idx += 1
 
     scaled = magnitude / (base ** idx)
 
