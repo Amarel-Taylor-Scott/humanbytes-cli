@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "humanbytes-cli"
+version = "0.1.0"
+description = "A tiny library + CLI to parse and format human-readable byte sizes ('1"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Amarel Taylor Scott" }]
+keywords = ["llm", "agents", "ai", "cli"]
+dependencies = []
+
+[tool.setuptools]
+py-modules = ["humanbytes"]
